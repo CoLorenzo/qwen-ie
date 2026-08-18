@@ -225,13 +225,30 @@ def load_pipeline(model_id, quant):
         pipe = QwenImageEditPlusPipeline.from_pretrained(
             model_id, transformer=transformer, text_encoder=text_encoder, dtype=torch.bfloat16)
     else:  # fp8 (default): pesi FP8 pre-quantizzati caricati direttamente
-        from huggingface_hub import hf_hub_download
+        from huggingface_hub import hf_hub_download, list_repo_files
         from safetensors.torch import load_file
 
-        print(f"Scaricamento pesi FP8 ({FP8_REPO}/{FP8_FILE})...")
-        fp8_path = hf_hub_download(FP8_REPO, FP8_FILE)
+        config_repo = model_id
+        weights_repo, weights_file = FP8_REPO, FP8_FILE
+        try:
+            config = QwenImageTransformer2DModel.load_config(config_repo, subfolder="transformer")
+        except OSError:
+            # model_id e' un repo che contiene solo i pesi FP8 (es. quello di FP8_REPO), senza
+            # la struttura completa della pipeline: usalo come sorgente dei pesi e ricadi sul
+            # repo base ufficiale per config/pipeline.
+            print(f"'{model_id}' non ha una config di pipeline completa: uso i suoi pesi FP8 "
+                  f"e la config da {DEFAULT_MODEL}")
+            weights_repo = model_id
+            weights_file = next(
+                (f for f in list_repo_files(model_id) if f.endswith(".safetensors")),
+                FP8_FILE,
+            )
+            config_repo = DEFAULT_MODEL
+            config = QwenImageTransformer2DModel.load_config(config_repo, subfolder="transformer")
+
+        print(f"Scaricamento pesi FP8 ({weights_repo}/{weights_file})...")
+        fp8_path = hf_hub_download(weights_repo, weights_file)
         print("Caricamento pesi FP8...")
-        config = QwenImageTransformer2DModel.load_config(model_id, subfolder="transformer")
         state_dict = load_file(fp8_path, device="cpu")
         with torch.device("meta"):
             transformer = QwenImageTransformer2DModel.from_config(config)
@@ -266,7 +283,7 @@ def load_pipeline(model_id, quant):
                     continue
                 buf.data = buf.data.to(dtype=torch.bfloat16)
         pipe = QwenImageEditPlusPipeline.from_pretrained(
-            model_id, transformer=transformer, dtype=torch.bfloat16)
+            config_repo, transformer=transformer, dtype=torch.bfloat16)
 
     pipe.enable_model_cpu_offload()
     return pipe
