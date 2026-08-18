@@ -1,0 +1,6 @@
+# Configurazione di qwen-ie
+model = Qwen/Qwen-Image-Edit-2511
+quantization = fp8
+steps = 20
+cfg = 4.0
+lightning = false

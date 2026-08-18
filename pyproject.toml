@@ -1,0 +1,32 @@
+[project]
+name = "qwen-ie"
+version = "0.1.0"
+description = "CLI per editing di immagini con Qwen-Image-Edit"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch",
+    "torchvision",
+    "torchao",
+    "pillow",
+    "transformers>=4.57",
+    "accelerate",
+    "bitsandbytes",
+    "sentencepiece",
+    "safetensors",
+    "huggingface_hub",
+    "diffusers @ git+https://github.com/huggingface/diffusers.git",
+]
+
+[project.scripts]
+qwen-ie = "qwen_ie.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["qwen_ie"]
