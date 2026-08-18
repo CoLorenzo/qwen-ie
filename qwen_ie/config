@@ -4,3 +4,6 @@ quantization = fp8
 steps = 20
 cfg = 4.0
 lightning = false
+# usati da --serve/--client
+port = 17070
+host = 127.0.0.1

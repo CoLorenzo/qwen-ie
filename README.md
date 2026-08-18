@@ -54,6 +54,8 @@ qwen-ie --image foto.png --prompt "change the background to a sunset"
 qwen-ie --image a.png --image b.png --prompt "merge them" -o combo.png --seed 42
 ```
 
+Each call above loads the model from scratch, edits, and exits (oneshot mode).
+
 Main options:
 
 - `--image` (repeatable): input image, multiple allowed
@@ -67,10 +69,36 @@ Main options:
 - `--quant`: `fp8` (default, pre-quantized weights, ~20GB) or `nf4` (bitsandbytes 4-bit, ~11GB)
 - `--lightning`: fast mode (4 steps, cfg 1.0)
 
+## Server mode
+
+For multiple edits in a row, loading the model each time is wasteful. `--serve`
+loads it once and keeps it resident, serving requests over a local HTTP API;
+`--client` sends a request to that server instead of loading the model itself.
+
+```bash
+qwen-ie --serve --port 17070
+```
+
+```bash
+qwen-ie --client --image foto.png --prompt "change the background to a sunset" -o output.png
+```
+
+`--client` accepts the same `--image`/`--prompt`/`-o`/`--steps`/`--cfg`/`--seed`/
+`--negative`/`--lightning` options as oneshot mode (`--model`/`--quant` are fixed
+by the server at startup and ignored by the client). Both modes share `--port`
+(default 17070) and `--host` (default `127.0.0.1`).
+
+To stop the server:
+
+```bash
+pkill -f "[q]wen-ie --serve"
+```
+
 ## Configuration
 
 Defaults can be overridden in `~/.config/qwen_ie/config`
-(`key=value` format, see [`qwen_ie/config.example`](qwen_ie/config.example)).
+(`key=value` format, see [`qwen_ie/config`](qwen_ie/config) for the shipped
+example, which also accepts `port` and `host`).
 Precedence: CLI flags > `QWEN_IE_MODEL` environment variable > config file > defaults.
 
 The config file path can be changed with the `QWEN_IE_CONFIG` environment
